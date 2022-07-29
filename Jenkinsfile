@@ -37,7 +37,7 @@ pipeline{
                 
                     tools.Printcollor("获取代码","green")
                     //result =  sh returnStdout: true, script: "whoami"
-                    result = sh(script: "echo $PYTHON_SETUPTOOLS_VERSION", returnStdout: true).trim()
+                    result = sh(script: "echo "$PYTHON_SETUPTOOLS_VERSION"", returnStdout: true).trim()
 
                     tools.Printcollor("${result}","blue")
 
