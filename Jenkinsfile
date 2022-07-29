@@ -19,7 +19,8 @@ pipeline{
     agent { 
         node { 
             //label "python"
-            label "default"
+             label "jenkins-jenkins-agent"
+            //label "default"
             //label "jenkins-python"
             }
         }
