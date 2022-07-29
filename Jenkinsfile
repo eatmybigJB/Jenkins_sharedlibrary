@@ -4,6 +4,9 @@
 
 //func from shareibrary
 
+String BRANCH_NAME = "${env.BRANCH_NAME}"
+
+
 def tools = new org.devops.detail_print()
 
 
