@@ -15,7 +15,7 @@ def tools = new org.devops.detail_print()
 pipeline{
     agent { 
         node { 
-            label "jenkins/jenkins-jenkins-agent"
+            label "jenkins-jenkins-agent"
             }
         }
     
