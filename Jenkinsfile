@@ -37,6 +37,8 @@ pipeline{
 
                     result = sh(script: "whoami", returnStdout: true).trim()
 
+                    tools.Printcollor("${result}","blue")
+
 
                 }
             }
