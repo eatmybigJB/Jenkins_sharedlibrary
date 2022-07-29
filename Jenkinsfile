@@ -4,7 +4,7 @@
 
 //func from shareibrary
 
-def tools = new org.devops.tools()
+def tools = new org.devops.detail_print()
 
 
 
