@@ -32,7 +32,7 @@ pipeline{
                     
                     println("${BUILD_NUMBER}")
                 
-                    tools.Printcollor("获取代码","blue")
+                    tools.Printcollor("获取代码","green")
 
 
                 }
