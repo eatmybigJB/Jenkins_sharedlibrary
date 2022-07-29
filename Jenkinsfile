@@ -4,7 +4,7 @@
 
 //func from shareibrary
 
-String BRANCH_NAME = "${BRANCH_NAME}"
+String BUILD_NUMBER = "${BUILD_NUMBER}"
 
 
 def tools = new org.devops.detail_print()
@@ -30,9 +30,9 @@ pipeline{
                 script{
                    
                     
-                    println("${BRANCH_NAME}")
+                    println("${BUILD_NUMBER}")
                 
-                    tools.Printcollor("获取代码","green")
+                    tools.Printcollor("获取代码","blue")
 
 
                 }
