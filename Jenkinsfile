@@ -18,9 +18,9 @@ def tools = new org.devops.detail_print()
 pipeline{
     agent { 
         node { 
-            //label "python"
+            label "python"
              //label "jenkins-jenkins-agent"
-            label "maven"
+            //label "maven"
             //label "jenkins-python"
             }
         }
@@ -36,7 +36,7 @@ pipeline{
                     println("${BUILD_NUMBER}")
                 
                     tools.Printcollor("获取代码","green")
-                    result =  sh returnStdout: true, script: "mvn --version"
+                    result =  sh returnStdout: true, script: "whoami"
                     //result = sh(script: "whoami", returnStdout: true).trim()
 
                     tools.Printcollor("${result}","blue")
