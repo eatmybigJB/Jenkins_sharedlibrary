@@ -34,7 +34,7 @@ pipeline{
                     println("${BUILD_NUMBER}")
                 
                     tools.Printcollor("获取代码","green")
-                    result =  sh returnStdout: true, script: "python --version"
+                    result =  sh returnStdout: true, script: "mvn --version"
                     //result = sh(script: "whoami", returnStdout: true).trim()
 
                     tools.Printcollor("${result}","blue")
