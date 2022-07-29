@@ -35,6 +35,8 @@ pipeline{
                 
                     tools.Printcollor("获取代码","green")
 
+                    result = sh(script: "whoami", returnStdout: true).trim()
+
 
                 }
             }
