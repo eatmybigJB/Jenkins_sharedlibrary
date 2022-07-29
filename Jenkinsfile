@@ -19,8 +19,8 @@ pipeline{
     agent { 
         node { 
             //label "python"
-             label "jenkins-jenkins-agent"
-            //label "default"
+             //label "jenkins-jenkins-agent"
+            label "maven"
             //label "jenkins-python"
             }
         }
