@@ -1,5 +1,6 @@
 ```python
 import json
+import traceback
 from kafka import KafkaConsumer
 from kafka.errors import NoBrokersAvailable
 
@@ -27,9 +28,19 @@ def lambda_handler(event, context):
             'statusCode': 200,
             'body': json.dumps('Successfully connected to Kafka cluster')
         }
-    except NoBrokersAvailable:
+    except NoBrokersAvailable as e:
+        error_message = str(e)
+        print(f"Failed to connect to Kafka cluster: {error_message}")
+        traceback.print_exc()
         return {
             'statusCode': 500,
-            'body': json.dumps('Failed to connect to Kafka cluster')
+            'body': json.dumps({'error': 'Failed to connect to Kafka cluster', 'details': error_message})
         }
-
+    except Exception as e:
+        error_message = str(e)
+        print(f"An unexpected error occurred: {error_message}")
+        traceback.print_exc()
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'An unexpected error occurred', 'details': error_message})
+        }
