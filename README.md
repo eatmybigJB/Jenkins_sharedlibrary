@@ -1,37 +1,35 @@
 ```python
-import socket
 import json
-
-def check_connectivity(host, port):
-    try:
-        with socket.create_connection((host, port), timeout=10):
-            return True
-    except (socket.timeout, socket.error):
-        return False
+from kafka import KafkaConsumer
+from kafka.errors import NoBrokersAvailable
 
 def lambda_handler(event, context):
-    host = event.get('host', 'example.com')
-    port = event.get('port', 80)  # 默认端口设置为 80
+    # Kafka配置
+    kafka_brokers = [
+        'your_vpc_endpoint1:9092',
+        'your_vpc_endpoint2:9092',
+        'your_vpc_endpoint3:9092'
+    ]
+    username = 'your_username'
+    password = 'your_password'
     
-    is_connected = check_connectivity(host, port)
-    
-    if is_connected:
-        response = {
+    # 尝试连接到Kafka集群
+    try:
+        consumer = KafkaConsumer(
+            bootstrap_servers=kafka_brokers,
+            security_protocol="SASL_SSL",
+            sasl_mechanism="PLAIN",
+            sasl_plain_username=username,
+            sasl_plain_password=password
+        )
+        consumer.close()
+        return {
             'statusCode': 200,
-            'body': json.dumps({
-                'host': host,
-                'port': port,
-                'message': 'Successfully connected'
-            })
+            'body': json.dumps('Successfully connected to Kafka cluster')
         }
-    else:
-        response = {
-            'statusCode': 400,
-            'body': json.dumps({
-                'host': host,
-                'port': port,
-                'message': 'Failed to connect'
-            })
+    except NoBrokersAvailable:
+        return {
+            'statusCode': 500,
+            'body': json.dumps('Failed to connect to Kafka cluster')
         }
-    
-    return response
+
