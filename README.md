@@ -49,9 +49,14 @@ def consume_message():
             print(f"Consumed message: {data}")
             try:
                 username, email = data.split(',')
-                invoke_update_cognito_lambda(username.strip(), email.strip())
+                username = username.strip()
+                email = email.strip()
+                if username and email:
+                    invoke_update_cognito_lambda(username, email)
+                else:
+                    print(f"Invalid message format: {data}")
             except ValueError:
-                print(f"Invalid message format: {data}")
+                print(f"Failed to parse message: {data}")
             break  # 只消费一条消息后退出
 
         consumer.close()
@@ -81,4 +86,5 @@ def lambda_handler(event, context):
     result = consume_message()
     print(f"Lambda function result: {result}")
     return result
+
 
