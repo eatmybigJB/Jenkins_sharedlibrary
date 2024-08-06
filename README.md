@@ -2,38 +2,52 @@
 import os
 import json
 import traceback
-from kafka import KafkaProducer, KafkaConsumer
+from kafka import KafkaConsumer
 from kafka.errors import NoBrokersAvailable
+import boto3
+from botocore.exceptions import ClientError
 
-def produce_message(kafka_brokers, username, password, topic, message):
+def update_cognito_user(username, email):
+    client = boto3.client('cognito-idp')
+    user_pool_id = os.getenv('COGNITO_USER_POOL_ID')
+
     try:
-        producer = KafkaProducer(
-            bootstrap_servers=kafka_brokers,
-            security_protocol="SASL_SSL",
-            sasl_mechanism="PLAIN",
-            sasl_plain_username=username,
-            sasl_plain_password=password,
-            value_serializer=lambda v: json.dumps(v).encode('utf-8')
+        response = client.admin_get_user(
+            UserPoolId=user_pool_id,
+            Username=username
         )
-        
-        producer.send(topic, {'message': message})
-        producer.flush()
-        producer.close()
-        print(f"Successfully sent message to Kafka topic {topic}")
-        return {
-            'statusCode': 200,
-            'body': json.dumps(f'Successfully sent message to Kafka topic {topic}')
-        }
-    except Exception as e:
-        error_message = str(e)
-        print(f"Failed to send message to Kafka topic: {error_message}")
-        traceback.print_exc()
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': 'Failed to send message to Kafka topic', 'details': error_message})
-        }
+        # 用户已存在，更新用户属性
+        client.admin_update_user_attributes(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributes=[
+                {'Name': 'email', 'Value': email},
+                {'Name': 'email_verified', 'Value': 'true'}
+            ]
+        )
+        print(f"Updated user {username} with email {email}")
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'UserNotFoundException':
+            # 用户不存在，创建新用户
+            client.admin_create_user(
+                UserPoolId=user_pool_id,
+                Username=username,
+                UserAttributes=[
+                    {'Name': 'email', 'Value': email},
+                    {'Name': 'email_verified', 'Value': 'true'}
+                ],
+                MessageAction='SUPPRESS'  # 不发送欢迎邮件
+            )
+            print(f"Created user {username} with email {email}")
+        else:
+            raise
 
-def consume_message(kafka_brokers, username, password, topic):
+def consume_message():
+    kafka_brokers = os.getenv('KAFKA_BROKERS', 'your_vpc_endpoint1:9092,your_vpc_endpoint2:9092,your_vpc_endpoint3:9092').split(',')
+    username = os.getenv('KAFKA_USERNAME', 'your_username')
+    password = os.getenv('KAFKA_PASSWORD', 'your_password')
+    topic = os.getenv('KAFKA_TOPIC', 'your_topic')
+
     try:
         consumer = KafkaConsumer(
             topic,
@@ -49,12 +63,17 @@ def consume_message(kafka_brokers, username, password, topic):
 
         for message in consumer:
             consumer.commit()
-            consumer.close()
-            print(f"Consumed message: {message.value.decode('utf-8')}")
-            return {
-                'statusCode': 200,
-                'body': json.dumps(f'Consumed message: {message.value.decode("utf-8")}')
-            }
+            data = message.value.decode('utf-8')
+            print(f"Consumed message: {data}")
+            username, email = data.split(',')
+            update_cognito_user(username, email)
+            break  # 只消费一条消息后退出
+
+        consumer.close()
+        return {
+            'statusCode': 200,
+            'body': json.dumps('Successfully processed message from Kafka topic')
+        }
     except NoBrokersAvailable as e:
         error_message = str(e)
         print(f"Failed to connect to Kafka cluster: {error_message}")
@@ -73,20 +92,4 @@ def consume_message(kafka_brokers, username, password, topic):
         }
 
 def lambda_handler(event, context):
-    # 从环境变量中读取配置
-    kafka_brokers = os.getenv('KAFKA_BROKERS', 'your_vpc_endpoint1:9092,your_vpc_endpoint2:9092,your_vpc_endpoint3:9092').split(',')
-    username = os.getenv('KAFKA_USERNAME', 'your_username')
-    password = os.getenv('KAFKA_PASSWORD', 'your_password')
-    topic = os.getenv('KAFKA_TOPIC', 'your_topic')
-    message = os.getenv('KAFKA_MESSAGE', 'Default message')
-    operation = os.getenv('KAFKA_OPERATION', 'produce')  # 默认操作为 produce
-
-    if operation == 'produce':
-        return produce_message(kafka_brokers, username, password, topic, message)
-    elif operation == 'consume':
-        return consume_message(kafka_brokers, username, password, topic)
-    else:
-        return {
-            'statusCode': 400,
-            'body': json.dumps('Invalid operation. Please set KAFKA_OPERATION to either "produce" or "consume".')
-        }
+    return consume_message()
