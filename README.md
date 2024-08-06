@@ -22,10 +22,10 @@ def invoke_update_cognito_lambda(username, email):
         raise
 
 def consume_message():
-    kafka_brokers = os.getenv('KAFKA_BROKERS', 'your_vpc_endpoint1:9092,your_vpc_endpoint2:9092,your_vpc_endpoint3:9092').split(',')
-    kafka_username = os.getenv('KAFKA_USERNAME', 'your_username')
-    kafka_password = os.getenv('KAFKA_PASSWORD', 'your_password')
-    topic = os.getenv('KAFKA_TOPIC', 'your_topic')
+    kafka_brokers = os.getenv('KAFKA_BROKERS').split(',')
+    kafka_username = os.getenv('KAFKA_USERNAME')
+    kafka_password = os.getenv('KAFKA_PASSWORD')
+    topic = os.getenv('KAFKA_TOPIC')
 
     print("Connecting to Kafka brokers:", kafka_brokers)
     
@@ -86,5 +86,3 @@ def lambda_handler(event, context):
     result = consume_message()
     print(f"Lambda function result: {result}")
     return result
-
-
