@@ -44,3 +44,9 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': json.dumps({'error': 'An unexpected error occurred', 'details': error_message})
         }
+
+               "ec2:CreateNetworkInterface",
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:DeleteNetworkInterface",
+                "ec2:AssignPrivateIpAddresses",
+                "ec2:UnassignPrivateIpAddresses"
