@@ -2,73 +2,59 @@
 import os
 import json
 import traceback
-from kafka import KafkaConsumer
+from kafka import KafkaProducer, KafkaConsumer
 from kafka.errors import NoBrokersAvailable
-import boto3
 
-def invoke_update_cognito_lambda(username, email):
-    client = boto3.client('lambda')
-    payload = json.dumps({'username': username, 'email': email})
-    
+def produce_message(kafka_brokers, username, password, topic, message):
     try:
-        response = client.invoke(
-            FunctionName=os.getenv('UPDATE_COGNITO_FUNCTION_NAME'),
-            InvocationType='Event',  # 异步调用
-            Payload=payload
+        producer = KafkaProducer(
+            bootstrap_servers=kafka_brokers,
+            security_protocol="SASL_SSL",
+            sasl_mechanism="PLAIN",
+            sasl_plain_username=username,
+            sasl_plain_password=password,
+            value_serializer=lambda v: json.dumps(v).encode('utf-8')
         )
-        print(f"Invoked update_cognito_lambda for user {username}")
+        
+        producer.send(topic, {'message': message})
+        producer.flush()
+        producer.close()
+        print(f"Successfully sent message to Kafka topic {topic}")
+        return {
+            'statusCode': 200,
+            'body': json.dumps(f'Successfully sent message to Kafka topic {topic}')
+        }
     except Exception as e:
-        print(f"Failed to invoke update_cognito_lambda for user {username}: {e}")
-        raise
+        error_message = str(e)
+        print(f"Failed to send message to Kafka topic: {error_message}")
+        traceback.print_exc()
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Failed to send message to Kafka topic', 'details': error_message})
+        }
 
-def consume_message():
-    kafka_brokers = os.getenv('KAFKA_BROKERS').split(',')
-    kafka_username = os.getenv('KAFKA_USERNAME')
-    kafka_password = os.getenv('KAFKA_PASSWORD')
-    topic = os.getenv('KAFKA_TOPIC')
-
-    print("Connecting to Kafka brokers:", kafka_brokers)
-    
+def consume_message(kafka_brokers, username, password, topic):
     try:
         consumer = KafkaConsumer(
             topic,
             bootstrap_servers=kafka_brokers,
             security_protocol="SASL_SSL",
             sasl_mechanism="PLAIN",
-            sasl_plain_username=kafka_username,
-            sasl_plain_password=kafka_password,
+            sasl_plain_username=username,
+            sasl_plain_password=password,
             auto_offset_reset='earliest',
             enable_auto_commit=False,
             group_id='your_consumer_group'
         )
-        print("Connected to Kafka, consuming messages")
 
         for message in consumer:
             consumer.commit()
-            data = message.value.decode('utf-8')
-            print(f"Consumed message: {data}")
-            try:
-                data_json = json.loads(data)
-                message_content = data_json.get('message')
-                if message_content:
-                    username, email = message_content.split(',')
-                    username = username.strip()
-                    email = email.strip()
-                    if username and email:
-                        invoke_update_cognito_lambda(username, email)
-                    else:
-                        print(f"Invalid message format: {message_content}")
-                else:
-                    print(f"Invalid JSON format: {data}")
-            except (json.JSONDecodeError, ValueError) as e:
-                print(f"Failed to parse message: {data}, error: {e}")
-            break  # 只消费一条消息后退出
-
-        consumer.close()
-        return {
-            'statusCode': 200,
-            'body': json.dumps('Successfully processed message from Kafka topic')
-        }
+            consumer.close()
+            print(f"Consumed message: {message.value.decode('utf-8')}")
+            return {
+                'statusCode': 200,
+                'body': json.dumps(f'Consumed message: {message.value.decode("utf-8")}')
+            }
     except NoBrokersAvailable as e:
         error_message = str(e)
         print(f"Failed to connect to Kafka cluster: {error_message}")
@@ -87,7 +73,20 @@ def consume_message():
         }
 
 def lambda_handler(event, context):
-    print("Lambda function invoked")
-    result = consume_message()
-    print(f"Lambda function result: {result}")
-    return result
+    # 从环境变量中读取配置
+    kafka_brokers = os.getenv('KAFKA_BROKERS', 'your_vpc_endpoint1:9092,your_vpc_endpoint2:9092,your_vpc_endpoint3:9092').split(',')
+    username = os.getenv('KAFKA_USERNAME', 'your_username')
+    password = os.getenv('KAFKA_PASSWORD', 'your_password')
+    topic = os.getenv('KAFKA_TOPIC', 'your_topic')
+    message = os.getenv('KAFKA_MESSAGE', 'Default message')
+    operation = os.getenv('KAFKA_OPERATION', 'produce')  # 默认操作为 produce
+
+    if operation == 'produce':
+        return produce_message(kafka_brokers, username, password, topic, message)
+    elif operation == 'consume':
+        return consume_message(kafka_brokers, username, password, topic)
+    else:
+        return {
+            'statusCode': 400,
+            'body': json.dumps('Invalid operation. Please set KAFKA_OPERATION to either "produce" or "consume".')
+        }
