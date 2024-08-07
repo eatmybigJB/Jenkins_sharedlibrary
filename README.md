@@ -1,13 +1,27 @@
-好的，为了详细地返回信息，包括在非200状态码情况下的错误原因，我们可以修改Lambda函数的代码。修改后的代码会返回HTTP状态码、响应体以及请求的详细信息（例如Headers）。以下是更新后的代码和步骤。
+好的，为了在这个Lambda函数的基础上增加测试端口联通性的方法，并从test event中获取调用的方法，我们可以进行以下调整：
 
-### 1. 编写Lambda函数代码
-创建或修改`lambda_function.py`文件，包含以下代码：
+1. **修改Lambda函数代码**：
+   - 添加一个新的方法来测试端口联通性。
+   - 根据test event中的参数决定调用哪个方法。
 
 ```python
 import json
 import requests
+import socket
 
 def lambda_handler(event, context):
+    action = event.get('action')
+    if action == 'http_request':
+        return handle_http_request(event)
+    elif action == 'port_check':
+        return handle_port_check(event)
+    else:
+        return {
+            'statusCode': 400,
+            'body': json.dumps('Invalid action specified')
+        }
+
+def handle_http_request(event):
     url = event.get('url')
     if not url:
         return {
@@ -23,6 +37,30 @@ def lambda_handler(event, context):
             'body': response.text
         }
     except requests.exceptions.RequestException as e:
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'error': str(e),
+                'type': type(e).__name__
+            })
+        }
+
+def handle_port_check(event):
+    host = event.get('host')
+    port = event.get('port')
+    if not host or not port:
+        return {
+            'statusCode': 400,
+            'body': json.dumps('Host or port not provided')
+        }
+
+    try:
+        with socket.create_connection((host, port), timeout=10) as sock:
+            return {
+                'statusCode': 200,
+                'body': json.dumps('Port is open')
+            }
+    except (socket.timeout, socket.error) as e:
         return {
             'statusCode': 500,
             'body': json.dumps({
@@ -60,26 +98,43 @@ aws lambda update-function-code --function-name myLambdaFunction --zip-file file
 ```
 
 ### 4. 创建测试事件
-在AWS Lambda控制台中，创建一个测试事件，例如：
+在AWS Lambda控制台中，创建两个测试事件：
 
+#### HTTP请求测试事件：
 ```json
 {
+    "action": "http_request",
     "url": "https://www.example.com"
 }
 ```
 
-### 5. 测试Lambda函数
-你可以在AWS Lambda控制台中测试该函数，或者使用以下CLI命令进行测试：
+#### 端口检查测试事件：
+```json
+{
+    "action": "port_check",
+    "host": "example.com",
+    "port": 80
+}
+```
 
+### 5. 测试Lambda函数
+你可以在AWS Lambda控制台中测试这两个事件，或者使用以下CLI命令进行测试：
+
+#### HTTP请求测试：
 ```sh
-aws lambda invoke --function-name myLambdaFunction --payload '{"url": "https://www.example.com"}' response.json
+aws lambda invoke --function-name myLambdaFunction --payload '{"action": "http_request", "url": "https://www.example.com"}' response.json
+cat response.json
+```
+
+#### 端口检查测试：
+```sh
+aws lambda invoke --function-name myLambdaFunction --payload '{"action": "port_check", "host": "example.com", "port": 80}' response.json
 cat response.json
 ```
 
 ### 解释代码
-- `lambda_handler` 函数接收事件和上下文参数。
-- 从事件中提取URL，如果没有提供URL，则返回400错误。
-- 使用 `requests.get` 请求URL，如果请求成功，返回状态码、响应头和响应体。
-- 如果发生异常，返回500错误以及错误的详细信息（错误类型和错误消息）。
+- `lambda_handler` 函数从事件中获取`action`参数，并根据该参数调用相应的方法。
+- `handle_http_request` 函数处理HTTP请求，并返回详细的响应信息。
+- `handle_port_check` 函数检查指定主机和端口的联通性，并返回结果。
 
-这样，无论HTTP请求成功与否，Lambda函数都能够详细地返回请求的结果和错误信息。
+这样，你可以根据test event中的`action`参数选择是执行HTTP请求还是测试端口联通性，并得到详细的响应信息。
