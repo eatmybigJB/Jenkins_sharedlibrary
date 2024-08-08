@@ -25,6 +25,9 @@ def lambda_handler(event, context):
 
 def handle_http_request(event):
     url = event.get('url')
+    use_proxy = event.get('use_proxy', False)
+    proxies = event.get('proxies', {})
+
     if not url:
         return {
             'statusCode': 400,
@@ -32,7 +35,10 @@ def handle_http_request(event):
         }
 
     try:
-        response = requests.get(url)
+        if use_proxy and proxies:
+            response = requests.get(url, proxies=proxies)
+        else:
+            response = requests.get(url)
         return {
             'statusCode': response.status_code,
             'headers': dict(response.headers),
@@ -93,3 +99,4 @@ def handle_resolve_hostname(event):
                 'type': type(e).__name__
             })
         }
+
