@@ -15,6 +15,8 @@ def lambda_handler(event, context):
         return handle_http_request(event)
     elif action == 'port_check':
         return handle_port_check(event)
+    elif action == 'resolve_hostname':
+        return handle_resolve_hostname(event)
     else:
         return {
             'statusCode': 400,
@@ -68,73 +70,26 @@ def handle_port_check(event):
                 'type': type(e).__name__
             })
         }
-```
 
-### 2. 创建依赖包
-由于Lambda函数中使用了`requests`库，因此需要打包依赖库。使用以下步骤创建依赖包并打包：
+def handle_resolve_hostname(event):
+    hostname = event.get('hostname')
+    if not hostname:
+        return {
+            'statusCode': 400,
+            'body': json.dumps('Hostname not provided')
+        }
 
-```sh
-mkdir package
-pip install requests -t package/
-cd package
-zip -r ../lambda_function.zip .
-cd ..
-zip -g lambda_function.zip lambda_function.py
-```
-
-### 3. 部署Lambda函数
-使用AWS CLI来创建或更新这个Lambda函数：
-
-```sh
-aws lambda create-function --function-name myLambdaFunction \
-    --zip-file fileb://lambda_function.zip --handler lambda_function.lambda_handler \
-    --runtime python3.8 --role arn:aws:iam::<your-account-id>:role/<your-lambda-execution-role>
-```
-
-如果Lambda函数已经存在，可以使用以下命令更新函数代码：
-
-```sh
-aws lambda update-function-code --function-name myLambdaFunction --zip-file fileb://lambda_function.zip
-```
-
-### 4. 创建测试事件
-在AWS Lambda控制台中，创建两个测试事件：
-
-#### HTTP请求测试事件：
-```json
-{
-    "action": "http_request",
-    "url": "https://www.example.com"
-}
-```
-
-#### 端口检查测试事件：
-```json
-{
-    "action": "port_check",
-    "host": "example.com",
-    "port": 80
-}
-```
-
-### 5. 测试Lambda函数
-你可以在AWS Lambda控制台中测试这两个事件，或者使用以下CLI命令进行测试：
-
-#### HTTP请求测试：
-```sh
-aws lambda invoke --function-name myLambdaFunction --payload '{"action": "http_request", "url": "https://www.example.com"}' response.json
-cat response.json
-```
-
-#### 端口检查测试：
-```sh
-aws lambda invoke --function-name myLambdaFunction --payload '{"action": "port_check", "host": "example.com", "port": 80}' response.json
-cat response.json
-```
-
-### 解释代码
-- `lambda_handler` 函数从事件中获取`action`参数，并根据该参数调用相应的方法。
-- `handle_http_request` 函数处理HTTP请求，并返回详细的响应信息。
-- `handle_port_check` 函数检查指定主机和端口的联通性，并返回结果。
-
-这样，你可以根据test event中的`action`参数选择是执行HTTP请求还是测试端口联通性，并得到详细的响应信息。
+    try:
+        ip_address = socket.gethostbyname(hostname)
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'hostname': hostname, 'ip_address': ip_address})
+        }
+    except socket.error as e:
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'error': str(e),
+                'type': type(e).__name__
+            })
+        }
