@@ -26,7 +26,8 @@ def lambda_handler(event, context):
 def handle_http_request(event):
     url = event.get('url')
     use_proxy = event.get('use_proxy', False)
-    proxies = event.get('proxies', {})
+    proxies = event.get('proxies', None)
+    ca_cert_path = event.get('ca_cert_path', None)  # 获取CA证书路径
 
     if not url:
         return {
@@ -36,9 +37,9 @@ def handle_http_request(event):
 
     try:
         if use_proxy and proxies:
-            response = requests.get(url, proxies=proxies)
+            response = requests.get(url, proxies=proxies, verify=ca_cert_path)
         else:
-            response = requests.get(url)
+            response = requests.get(url, verify=ca_cert_path)
         return {
             'statusCode': response.status_code,
             'headers': dict(response.headers),
