@@ -8,6 +8,7 @@
 import json
 import requests
 import socket
+import os
 
 def lambda_handler(event, context):
     action = event.get('action')
@@ -27,13 +28,19 @@ def handle_http_request(event):
     url = event.get('url')
     use_proxy = event.get('use_proxy', False)
     proxies = event.get('proxies', None)
-    ca_cert_path = event.get('ca_cert_path', None)  # 获取CA证书路径
+    ca_cert_file = event.get('ca_cert_file', None)  # 获取CA证书文件名
 
     if not url:
         return {
             'statusCode': 400,
             'body': json.dumps('URL not provided')
         }
+
+    # 获取当前脚本所在的目录
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # 如果提供了CA证书文件名，则构建完整路径
+    ca_cert_path = os.path.join(script_dir, ca_cert_file) if ca_cert_file else None
 
     try:
         if use_proxy and proxies:
