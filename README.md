@@ -5,107 +5,34 @@
    - 根据test event中的参数决定调用哪个方法。
 
 ```python
-import json
-import requests
-import socket
-import os
+# 美丽的自然风光
 
-def lambda_handler(event, context):
-    action = event.get('action')
-    if action == 'http_request':
-        return handle_http_request(event)
-    elif action == 'port_check':
-        return handle_port_check(event)
-    elif action == 'resolve_hostname':
-        return handle_resolve_hostname(event)
-    else:
-        return {
-            'statusCode': 400,
-            'body': json.dumps('Invalid action specified')
-        }
+自然界中充满了令人惊叹的美景。从壮观的山脉到宁静的海滩，每一处风景都有其独特的魅力。本文将带您领略几处令人难忘的自然美景。
 
-def handle_http_request(event):
-    url = event.get('url')
-    use_proxy = event.get('use_proxy', False)
-    proxies = event.get('proxies', None)
-    ca_cert_file = event.get('ca_cert_file', "no")  # 默认不使用指定的CA证书
+## 1. 雄伟的山脉
 
-    if not url:
-        return {
-            'statusCode': 400,
-            'body': json.dumps('URL not provided')
-        }
+高耸入云的山峰不仅展现了大自然的力量，也为我们提供了壮丽的景观。
 
-    # 确定是否使用自定义CA证书或系统默认CA证书
-    if ca_cert_file == "no":
-        verify_ssl = True  # 使用系统默认的CA证书
-    else:
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        verify_ssl = os.path.join(script_dir, ca_cert_file)  # 使用指定的CA证书
+![雄伟的山脉](mountain_image_url.jpg)
 
-    try:
-        if use_proxy and proxies:
-            response = requests.get(url, proxies=proxies, verify=verify_ssl)
-        else:
-            response = requests.get(url, verify=verify_ssl)
-        
-        return {
-            'statusCode': response.status_code,
-            'headers': dict(response.headers),
-            'body': response.text
-        }
-    except requests.exceptions.RequestException as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps({
-                'error': str(e),
-                'type': type(e).__name__
-            })
-        }
+山脉不仅是视觉上的享受，还是众多动植物的家园。它们在调节地球气候和水循环中扮演着重要角色。
 
-def handle_port_check(event):
-    host = event.get('host')
-    port = event.get('port')
-    if not host or not port:
-        return {
-            'statusCode': 400,
-            'body': json.dumps('Host or port not provided')
-        }
+## 2. 宁静的湖泊
 
-    try:
-        with socket.create_connection((host, port), timeout=10) as sock:
-            return {
-                'statusCode': 200,
-                'body': json.dumps('Port is open')
-            }
-    except (socket.timeout, socket.error) as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps({
-                'error': str(e),
-                'type': type(e).__name__
-            })
-        }
+平静的湖面如同一面镜子，倒映着周围的景色，营造出一种宁静而神秘的氛围。
 
-def handle_resolve_hostname(event):
-    hostname = event.get('hostname')
-    if not hostname:
-        return {
-            'statusCode': 400,
-            'body': json.dumps('Hostname not provided')
-        }
+![宁静的湖泊](lake_image_url.jpg)
 
-    try:
-        ip_address = socket.gethostbyname(hostname)
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'hostname': hostname, 'ip_address': ip_address})
-        }
-    except socket.error as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps({
-                'error': str(e),
-                'type': type(e).__name__
-            })
-        }
+湖泊不仅是自然美景的代表，也是重要的淡水资源，支持着丰富的生态系统。
+
+## 3. 广袤的森林
+
+郁郁葱葱的森林是地球的绿肺，为无数生物提供栖息地。
+
+![广袤的森林](forest_image_url.jpg)
+
+森林不仅美丽，还在维持生态平衡、吸收二氧化碳等方面发挥着关键作用。
+
+## 结语
+
+自然之美无处不在，它提醒我们要珍惜和保护我们的环境。通过欣赏这些美景，我们不仅能获得视觉享受，还能加深对自然的理解和敬畏。
