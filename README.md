@@ -28,7 +28,7 @@ def handle_http_request(event):
     url = event.get('url')
     use_proxy = event.get('use_proxy', False)
     proxies = event.get('proxies', None)
-    ca_cert_file = event.get('ca_cert_file', "no")  # 默认不使用CA证书
+    ca_cert_file = event.get('ca_cert_file', "no")  # 默认不使用指定的CA证书
 
     if not url:
         return {
@@ -109,5 +109,3 @@ def handle_resolve_hostname(event):
                 'type': type(e).__name__
             })
         }
-
-
