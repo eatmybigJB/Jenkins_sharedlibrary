@@ -28,7 +28,7 @@ def handle_http_request(event):
     url = event.get('url')
     use_proxy = event.get('use_proxy', False)
     proxies = event.get('proxies', None)
-    ca_cert_file = event.get('ca_cert_file', None)  # 获取CA证书文件名
+    ca_cert_file = event.get('ca_cert_file', "no")  # 默认不使用CA证书
 
     if not url:
         return {
@@ -36,20 +36,19 @@ def handle_http_request(event):
             'body': json.dumps('URL not provided')
         }
 
-    # 判断是否使用CA证书
+    # 确定是否使用自定义CA证书或系统默认CA证书
     if ca_cert_file == "no":
-        ca_cert_path = False
+        verify_ssl = True  # 使用系统默认的CA证书
     else:
-        # 获取当前脚本所在的目录
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        # 构建完整路径
-        ca_cert_path = os.path.join(script_dir, ca_cert_file) if ca_cert_file else None
+        verify_ssl = os.path.join(script_dir, ca_cert_file)  # 使用指定的CA证书
 
     try:
         if use_proxy and proxies:
-            response = requests.get(url, proxies=proxies, verify=ca_cert_path)
+            response = requests.get(url, proxies=proxies, verify=verify_ssl)
         else:
-            response = requests.get(url, verify=ca_cert_path)
+            response = requests.get(url, verify=verify_ssl)
+        
         return {
             'statusCode': response.status_code,
             'headers': dict(response.headers),
@@ -110,3 +109,4 @@ def handle_resolve_hostname(event):
                 'type': type(e).__name__
             })
         }
+
